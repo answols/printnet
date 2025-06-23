@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <!-- Métadonnées de base -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Script PowerShell - PrintNet</title>
+
+  <!-- CSS externes -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/powershell.css" rel="stylesheet" />
+
+  <!-- PrismJS pour coloration syntaxique -->
+  <link href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-powershell.min.js"></script>
+</head>
+
+<body>
+  <!-- En-tête -->
+  <header class="text-center py-5">
+    <h1 class="animate__animated animate__fadeInDown neon-text">Script PowerShell</h1>
+    <p class="lead animate__animated animate__fadeInUp">Configuration d’un contrôleur de domaine – Projet PrintNet</p>
+  </header>
+
+  <!-- Contenu principal -->
+  <main class="container py-5">
+    
+    <!-- Bloc : Définition des variables -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Configuration des variables de domaine
+$domainName = "printcorp.com"
+$domainNetBIOS = "PRINTCORP"
+$domainAdminUser = "$domainNetBIOS\Administrateur"
+$domainAdminPass = ConvertTo-SecureString "***********" -AsPlainText -Force
+$domainCred = New-Object System.Management.Automation.PSCredential($domainAdminUser, $domainAdminPass)</code></pre>
+      <p class="explication fade-slide-up">
+        → Ce bloc définit toutes les variables nécessaires pour manipuler le domaine.  
+        <br><strong>$domainName</strong> est le nom DNS du domaine, <strong>$domainNetBIOS</strong> son nom court.  
+        <br>On prépare ensuite un objet d'identification sécurisé avec <code>ConvertTo-SecureString</code> et <code>PSCredential</code>.
+      </p>
+    </div>
+
+    <!-- Bloc : Configuration réseau -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Configuration réseau statique
+$interfaceAlias = (Get-NetAdapter | Where-Object {$_.Status -eq "Up"}).InterfaceAlias
+New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress "10.1.100.40" -PrefixLength 24 -DefaultGateway "10.1.100.254"
+Set-DnsClientServerAddress -InterfaceAlias $interfaceAlias -ServerAddresses ("127.0.0.1", "10.1.100.10")</code></pre>
+      <p class="explication">
+        → Configure l’IP statique du serveur ainsi que les serveurs DNS (local + externe).
+      </p>
+    </div>
+
+    <!-- Bloc : Renommage du serveur -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Renommage du serveur
+Rename-Computer -NewName "PSERV-04" -Force -Restart</code></pre>
+      <p class="explication">
+        → Change le nom de la machine en <strong>PSERV-04</strong> et redémarre immédiatement.
+      </p>
+    </div>
+
+    <!-- Bloc : Intégration au domaine -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Intégration au domaine
+Add-Computer -DomainName $domainName -Credential $domainCred -Restart</code></pre>
+      <p class="explication">
+        → Ajoute la machine au domaine <strong>printcorp.com</strong> avec redémarrage automatique.
+      </p>
+    </div>
+
+    <!-- Bloc : Installation des rôles -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Installation des rôles AD, DNS, DHCP
+Install-WindowsFeature AD-Domain-Services, DNS, DHCP -IncludeManagementTools</code></pre>
+      <p class="explication">
+        → Installe les rôles pour transformer le serveur en contrôleur de domaine.
+      </p>
+    </div>
+
+    <!-- Bloc : Promotion en tant que DC -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Promotion du serveur en tant que contrôleur de domaine
+Install-ADDSDomainController `
+-DomainName $domainName `
+-InstallDns `
+-Credential $domainCred `
+-SiteName "Default-First-Site-Name" `
+-SafeModeAdministratorPassword $domainAdminPass `
+-Force</code></pre>
+      <p class="explication">
+        → Promotion du serveur en tant que DC avec DNS, site AD, mot de passe de restauration.
+      </p>
+    </div>
+
+    <!-- Bloc : Enregistrement DHCP -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Autoriser le serveur DHCP dans Active Directory
+Add-DhcpServerInDC -DnsName "PSERV-04.printcorp.com" -IPAddress "10.1.100.40"</code></pre>
+      <p class="explication">
+        → Autorise le serveur DHCP à distribuer des adresses IP dans l’AD.
+      </p>
+    </div>
+
+    <!-- Bloc : Nettoyage DNS -->
+    <div class="script-block fade-slide-up">
+      <pre class="language-powershell"><code># === Rafraîchissement des enregistrements DNS et du service Netlogon
+ipconfig /flushdns
+ipconfig /registerdns
+Restart-Service netlogon</code></pre>
+      <p class="explication">
+        → Nettoie le cache DNS, enregistre l’IP dans le DNS et redémarre Netlogon.
+      </p>
+      
+   
+    </div>
+
+    <!-- Console interactive -->
+    <h3 class="glass text-center fade-slide-up">Windows serveur Core pour tester le script</h3>
+    <div class="console-sim fade-slide-up" id="console-output" contenteditable="true" spellcheck="false"></div>
+
+     <!-- Bouton retour -->
+    
+    <div class="text-center">
+        <a href="index.html" id="btnRetour" class="btn btn-danger btn-lg animate__animated animate__pulse animate__infinite">
+      ⬅️ Retour à l’accueil
+    </a>
+  </div>
+
+</main>
+
+  <!-- Pied de page -->
+  <footer class="text-center py-3">
+    <p class="mb-0">&copy; 2025 ANSELIN Hugo – Projet PrintNet</p>
+  </footer>
+
+  <!-- Script : Console interactive PowerShell -->
+  <script>
+    const consoleOutput = document.getElementById("console-output");
+    const prompt = () => `PS ${etatSysteme.hostname}> `;
+    const promptRegex = /^PS .*?> /;
+
+    let etatSysteme = {
+      hostname: "WIN-SERVER",
+      ip: null,
+      ipconfigDone: false,
+      domain: null,
+      roles: [],
+      isPromoted: false,
+      dhcpAdded: false
+    };
+
+    consoleOutput.innerText = prompt();
+    placeCursorAtEnd();
+
+    function placeCursorAtEnd() {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(consoleOutput);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function executerCommande(cmd) {
+      let output = "";
+      if (!cmd) {
+        consoleOutput.innerText += "\n" + prompt();
+        placeCursorAtEnd();
+        return;
+      }
+
+      const lignes = cmd.split(/\r?\n/).map(line => line.trim());
+      const variablesOK = lignes.some(l => l.startsWith("$domainName")) &&
+                          lignes.some(l => l.startsWith("$domainNetBIOS")) &&
+                          lignes.some(l => l.startsWith("$domainAdminUser")) &&
+                          lignes.some(l => l.startsWith("$domainAdminPass")) &&
+                          lignes.some(l => l.startsWith("$domainCred"));
+
+      if (variablesOK) {
+        etatSysteme.domain = "printcorp.com";
+        output = "→ Variables enregistrées ✅";
+      } else if (cmd.includes("Get-NetAdapter") || cmd.includes("New-NetIPAddress") || cmd.includes("Set-DnsClientServerAddress")) {
+        etatSysteme.ip = "10.1.100.40";
+        etatSysteme.ipconfigDone = true;
+        output = "→ Adresse IP définie sur 10.1.100.40 ✅";
+      } else if (cmd.startsWith("Rename-Computer")) {
+        etatSysteme.hostname = "PSERV-04";
+        output = "→ Nom correctement changé en PSERV-04 ✅";
+      } else if (cmd.startsWith("Add-Computer")) {
+        output = etatSysteme.hostname === "PSERV-04" && etatSysteme.domain
+          ? "→ PSERV-04 a bien rejoint le domaine printcorp.com ✅"
+          : "→ Erreur : nom de machine ou domaine non défini.";
+      } else if (cmd.startsWith("Install-WindowsFeature")) {
+        etatSysteme.roles = ["AD", "DNS", "DHCP"];
+        output = "→ Rôles AD DS, DNS et DHCP bien installés ✅";
+      } else if (cmd.includes("Install-ADDSDomainController")) {
+        output = etatSysteme.domain
+          ? (etatSysteme.isPromoted = true, "→ Promotion du serveur en contrôleur de domaine réussie ✅")
+          : "→ Erreur : domaine non défini.";
+      } else if (cmd.startsWith("Add-DhcpServerInDC")) {
+        etatSysteme.dhcpAdded = true;
+        output = "→ Serveur DHCP ajouté dans Active Directory ✅";
+      } else if (cmd === "ipconfig") {
+        output = etatSysteme.ipconfigDone
+          ? `Carte Ethernet Ethernet :\n   Adresse IPv4. . . . . . . . . . . . : ${etatSysteme.ip}\n   Masque de sous-réseau . . . . . . . : 255.255.255.0\n   Passerelle par défaut . . . . . . . : 10.1.100.254`
+          : "→ Aucune configuration IP trouvée.";
+      } else if (cmd === "ipconfig /flushdns") {
+        output = "→ Cache DNS vidé avec succès ✅";
+      } else if (cmd === "ipconfig /registerdns") {
+        output = "→ Réinscription DNS réussie ✅";
+      } else if (cmd === "Restart-Service netlogon") {
+        output = "→ Service Netlogon redémarré avec succès ✅";
+      } else {
+        output = "→ Commande non reconnue.";
+      } 
+
+      consoleOutput.innerText = consoleOutput.innerText.replace(/\n+$/, "");
+      consoleOutput.innerText += "\n" + output + "\n" + prompt();
+      placeCursorAtEnd();
+    }
+
+    // Gestion du collage
+    consoleOutput.addEventListener("paste", function (e) {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData("text/plain").trim();
+      if (text) {
+        const lastLine = consoleOutput.innerText.split("\n").pop();
+        if (!promptRegex.test(lastLine)) {
+          consoleOutput.innerText += "\n" + prompt();
+        }
+        consoleOutput.innerText += text;
+        executerCommande(text);
+      }
+      placeCursorAtEnd();
+    });
+
+    // Gestion clavier : Entrée & Ctrl+C
+    document.addEventListener("keydown", function (e) {
+      if (e.ctrlKey && e.key === "c") {
+        const selection = window.getSelection().toString();
+        if (!selection) {
+          e.preventDefault();
+          consoleOutput.innerText += "\n^C → Processus interrompu.\n" + prompt();
+          placeCursorAtEnd();
+        }
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const lines = consoleOutput.innerText.split("\n");
+        const lastPromptLine = lines.reverse().find(line => promptRegex.test(line));
+        const commande = lastPromptLine?.replace(promptRegex, "").trim();
+
+        if (!commande) {
+          consoleOutput.innerText += "\n" + prompt();
+          placeCursorAtEnd();
+          return;
+        }
+
+        executerCommande(commande);
+      }
+    });
+
+    consoleOutput.addEventListener("focus", placeCursorAtEnd);
+  </script>
+
+  <!-- Animation bouton retour -->
+  <script>
+    window.addEventListener("load", () => {
+      const btn = document.getElementById("btnRetour");
+      btn.addEventListener("animationend", () => {
+        btn.classList.remove("animate__fadeInUp");
+        btn.classList.add("animate__pulse", "animate__infinite");
+      });
+    });
+  </script>
+
+</body>
+</html>

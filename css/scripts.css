@@ -1,0 +1,58 @@
+﻿/* === SCRIPTS PAGE === */
+.script-block {
+  display: flex;
+  flex-direction: column;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.script-block code {
+  font-size: 1rem;
+}
+
+/* === Sélecteur de script stylisé === */
+#scriptSelector {
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 2px solid #c20000;        /* contour rouge */
+  background-color: #1e1e1e;        /* fond sombre */
+  color: #ffffff;                   /* texte blanc */
+  transition: all 0.3s ease-in-out;
+}
+
+#scriptSelector:focus,
+#scriptSelector:hover {
+  border-color: #ff1a1a;            /* rouge vif sur focus/survol */
+  box-shadow: 0 0 10px rgba(255, 26, 26, 0.5);
+  outline: none;
+}
+
+/* === COMMENTAIRES DES BLOCS DE SCRIPT === */
+.explication {
+  background: rgba(255, 75, 75, 0.08); /* léger fond rouge transparent */
+  border-left: 4px solid #c20000;
+  color: #ffb3b3;
+  font-style: italic;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  position: relative;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  transition: all 0.3s ease-in-out;
+}
+
+/* Icône d’information sur chaque explication */
+.explication::before {
+  content: "💬";
+  position: absolute;
+  left: -1.8rem;
+  top: 0.6rem;
+  font-size: 1.1rem;
+  color: #c20000;
+}

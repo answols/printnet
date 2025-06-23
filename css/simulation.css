@@ -1,0 +1,30 @@
+/* === SIMULATION PAGE === */
+.schema-network {
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+.equipement {
+  background-color: #c20000;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.equipement:hover {
+  background-color: #ff1a1a;
+}
+.equipement.off {
+  background-color: #999;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+pre#outputTraceroute {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+}

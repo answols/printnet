@@ -1,0 +1,169 @@
+/* === GLOBAL THEME & STRUCTURE === */
+* {
+  transition: all 0.3s ease-in-out;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  scroll-behavior: smooth;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to right, #1a1a1a, #3a0000);
+  color: #fff;
+  overflow-x: hidden;
+}
+main {
+  flex: 1;
+}
+header {
+  background: #0c0c0c;
+  border-bottom: 2px solid #c20000;
+}
+footer {
+  background-color: #1a1a1a;
+  color: #ff4b4b;
+  border-top: 1px solid #ff4b4b;
+}
+h1, h2, h3, h4 {
+  font-weight: 700;
+  color: #ff4b4b;
+}
+
+/* === COMMON COMPONENTS === */
+.btn-danger {
+  background: #c20000;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
+}
+.btn-danger:hover {
+  background-color: #ff1a1a;
+  transform: scale(1.05);
+}
+.btn-group-space > .btn {
+  margin: 10px;
+}
+.fade-slide-up {
+  animation: fadeSlideUp 1s ease forwards;
+}
+@keyframes fadeSlideUp {
+  0% { opacity: 0; transform: translateY(40px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.glass {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+}
+.neon-text {
+  text-shadow:
+    0 0 2px #ff4b4b,
+    0 0 10px #ff4b4b,
+    0 0 20px #ff4b4b,
+    0 0 40px #c20000;
+}
+   
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 15px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .fade-slide-up {
+      animation: fadeInUp 1s ease-in-out;
+    }
+
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .neon-text {
+      color: #ff4d4d;
+      text-shadow: 0 0 5px #ff4d4d, 0 0 10px #ff4d4d, 0 0 20px #ff4d4d;
+    }
+
+
+
+
+
+
+
+
+/*NavBar*\
+/* NAVBAR STYLING */
+.navbar-custom {
+  background: rgba(10, 10, 10, 0.8);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.3), 0 4px 30px rgba(0, 0, 0, 0.5);
+  border-bottom: 2px solid rgba(255, 75, 75, 0.4);
+  padding: 1rem 1.5rem;
+  transition: background 0.4s ease;
+}
+
+.navbar-custom .navbar-brand {
+  color: #ff4d4d !important;
+  font-size: 1.8rem;
+  text-shadow: 0 0 5px #ff4d4d, 0 0 15px #ff1a1a;
+  transition: transform 0.3s ease;
+}
+
+.navbar-custom .navbar-brand:hover {
+  transform: scale(1.1);
+  color: #ffffff !important;
+}
+
+.navbar-custom .nav-link {
+  color: #ff9999 !important;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.6rem 1rem;
+  position: relative;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.navbar-custom .nav-link:hover {
+  color: #ffffff !important;
+  transform: scale(1.05);
+}
+
+.navbar-custom .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  width: 80%;
+  height: 2px;
+  background-color: #ff4d4d;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.3s ease;
+}
+
+.navbar-custom .nav-link:hover::after {
+  transform: scaleX(1);
+}
+
+/* Navbar toggler (hamburger) style */
+.navbar-toggler {
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.navbar-toggler-icon {
+  filter: brightness(0) invert(1); /* Blanc */
+}

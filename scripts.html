@@ -1,0 +1,265 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scripts PowerShell – PrintNet</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/scripts.css" rel="stylesheet" />
+
+  <link href="https://cdn.jsdelivr.net/npm/prismjs/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/prismjs/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs/components/prism-powershell.min.js"></script>
+</head>
+<body>
+  <header class="text-center py-5">
+    <h1 class="animate__animated animate__fadeInDown neon-text">Scripts PowerShell – PrintNet</h1>
+    <p class="lead animate__animated animate__fadeInUp">Automatisation de l'infrastructure Active Directory</p>
+  </header>
+  <main class="container py-5">
+
+    <div class="glass text-center fade-slide-up">
+      <label for="scriptSelector" class="fs-5 form-label fw-bold fade-slide-up">Choisissez un script à afficher :</label>
+      <select id="scriptSelector" class="form-select w-auto d-inline-block fade-slide-up">
+        <option value="script1">Structure des OU + Groupes</option>
+        <option value="script2">Création des utilisateurs modèles</option>
+        <option value="script3">Configuration complète du DC</option>
+        <option value="script4">Installation Agent Zabbix</option>
+      </select>
+    </div>
+
+    <div id="script1" class="fade-slide-up">
+      <pre class="language-powershell"><code># Structure complète des sites avec numéros et services
+$structureSites = @{
+    "01 - Paris"      = @("Direction", "IT", "R&D", "RH", "Finances")
+    "02 - NewYork"    = @("Commercial", "Marketing", "Support")
+    "03 - Berlin"     = @("Production", "Logistique", "Support")
+    "04 - Singapour"  = @("DéveloppementCommercial", "Support")
+    "05 - Montreal"   = @("Supervision", "MaintenanceIT")
+}
+
+$domainDN = (Get-ADDomain).DistinguishedName
+
+foreach ($site in $structureSites.Keys) {
+    $services = $structureSites[$site]
+    $ouSiteDN = "OU=$site,$domainDN"
+
+    # Création des OU principales
+    New-ADOrganizationalUnit -Name $site -Path $domainDN -ProtectedFromAccidentalDeletion $false
+    New-ADOrganizationalUnit -Name "Utilisateurs" -Path $ouSiteDN -ProtectedFromAccidentalDeletion $false
+    New-ADOrganizationalUnit -Name "Groupes" -Path $ouSiteDN -ProtectedFromAccidentalDeletion $false
+    New-ADOrganizationalUnit -Name "Ordinateurs" -Path $ouSiteDN -ProtectedFromAccidentalDeletion $false
+    New-ADOrganizationalUnit -Name "Serveurs" -Path $ouSiteDN -ProtectedFromAccidentalDeletion $false
+
+    $ouGroupes = "OU=Groupes,$ouSiteDN"
+    # Groupes globaux du site
+    New-ADGroup -Name "G-$site-R" -SamAccountName "G-$site-R" -GroupScope Global -GroupCategory Security -Path $ouGroupes -Description "Accès Lecture - site $site"
+    New-ADGroup -Name "G-$site-RW" -SamAccountName "G-$site-RW" -GroupScope Global -GroupCategory Security -Path $ouGroupes -Description "Accès Lecture/Écriture - site $site"
+
+    # Création des OU pour les services dans Utilisateurs
+    foreach ($service in $services) {
+        New-ADOrganizationalUnit -Name $service -Path "OU=Utilisateurs,$ouSiteDN" -ProtectedFromAccidentalDeletion $false
+
+        # Création des groupes NTFS par service
+        $groupeLecture = "G-$site-$service-R"
+        $groupeRW = "G-$site-$service-RW"
+
+        New-ADGroup -Name $groupeLecture -SamAccountName $groupeLecture -GroupScope Global -GroupCategory Security -Path $ouGroupes -Description "Lecture - $service - $site"
+        New-ADGroup -Name $groupeRW -SamAccountName $groupeRW -GroupScope Global -GroupCategory Security -Path $ouGroupes -Description "Lecture/Écriture - $service - $site"
+    }
+
+    Write-Host "✅ Structure complète pour $site : OU + groupes par service créés."
+}
+}</code></pre>
+      <p class="explication fade-slide-up">
+        → Ce script construit l'architecture des OU dans Active Directory selon les sites et services.
+      </p>
+    </div>
+
+    <div id="script2" class="fade-slide-up" style="display:none">
+      <pre class="language-powershell"><code># Structure des sites avec numéros et services
+$structureSites = @{
+    "01 - Paris"      = @("Direction", "IT", "R&D", "RH", "Finances")
+    "02 - NewYork"    = @("Commercial", "Marketing", "Support")
+    "03 - Berlin"     = @("Production", "Logistique", "Support")
+    "04 - Singapour"  = @("DéveloppementCommercial", "Support")
+    "05 - Montreal"   = @("Supervision", "MaintenanceIT")
+}
+
+$domainDN = (Get-ADDomain).DistinguishedName
+
+foreach ($site in $structureSites.Keys) {
+    $services = $structureSites[$site]
+    $siteName = ($site -split " - ")[1]
+    $ouUtilisateurs = "OU=Utilisateurs,OU=$site,$domainDN"
+
+    foreach ($service in $services) {
+        # Nom d'utilisateur modèle : .m-Site-Service
+        $username = ".m-$siteName-$service"
+        $sam = $username.Replace(" ", "") # Pas d'espaces dans les SamAccountName
+
+        # Création de l'utilisateur modèle
+        New-ADUser -Name $username `
+            -SamAccountName $sam `
+            -UserPrincipalName "$sam@printcorp.com" `
+            -AccountPassword (ConvertTo-SecureString "MotdepasseTemporaire1!" -AsPlainText -Force) `
+            -Enabled $true `
+            -ChangePasswordAtLogon $true `
+            -Path "OU=$service,$ouUtilisateurs"
+
+        # Ajout du modèle au groupe du site (Lecture)
+        Add-ADGroupMember -Identity "G-$site-R" -Members $sam
+
+        # Ajout au groupe de son service (RW)
+        Add-ADGroupMember -Identity "G-$site-$service-RW" -Members $sam
+
+        Write-Host "👤 Modèle $username créé et ajouté à G-$site-R et G-$site-$service-RW"
+    }
+}
+}</code></pre>
+      <p class="explication fade-slide-up">
+        → Ce script génère un compte d'utilisateur modèle pour chaque service de chaque site, intégrés aux bons groupes.
+      </p>
+    </div>
+
+    <div id="script3" class="fade-slide-up" style="display:none">
+      <pre class="language-powershell"><code># === Configuration initiale ===
+$domainName = "printcorp.com"
+$domainNetBIOS = "PRINTCORP"
+$domainAdminUser = "$domainNetBIOS\Administrateur"
+$domainAdminPass = ConvertTo-SecureString "Astaroth01!" -AsPlainText -Force
+$domainCred = New-Object System.Management.Automation.PSCredential($domainAdminUser, $domainAdminPass)
+
+# === Configuration IP statique ===
+$interfaceAlias = (Get-NetAdapter | Where-Object {$_.Status -eq "Up"}).InterfaceAlias
+New-NetIPAddress -InterfaceAlias $interfaceAlias -IPAddress "10.1.100.40" -PrefixLength 24 -DefaultGateway "10.1.100.254"
+Set-DnsClientServerAddress -InterfaceAlias $interfaceAlias -ServerAddresses ("127.0.0.1", "10.1.100.10")
+
+# === Renommage et redémarrage pour appliquer le nom ===
+Rename-Computer -NewName "PSERV-04" -Force -Restart
+
+# === Rejoindre le domaine (à faire après redémarrage) ===
+Add-Computer -DomainName $domainName -Credential $domainCred -Restart
+
+# === Installer les rôles AD, DNS, DHCP ===
+Install-WindowsFeature AD-Domain-Services, DNS, DHCP -IncludeManagementTools
+
+# === Promouvoir le serveur en tant que contrôleur de domaine ===
+Install-ADDSDomainController `
+    -DomainName $domainName `
+    -InstallDns `
+    -Credential $domainCred `
+    -SiteName "Default-First-Site-Name" `
+    -SafeModeAdministratorPassword $domainAdminPass `
+    -Force
+
+# === Autoriser le serveur DHCP dans l'Active Directory ===
+Add-DhcpServerInDC -DnsName "PSERV-04.printcorp.com" -IPAddress "10.1.100.40"
+
+# === Forcer la réinscription DNS et Netlogon
+ipconfig /flushdns
+ipconfig /registerdns
+Restart-Service netlogon
+
+
+
+
+
+
+# === S'assurer que l'ordre DNS est correct (interroge lui-même d'abord)
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet0" -ServerAddresses ("127.0.0.1", "10.1.100.40")
+
+# === Forcer la réinscription DNS et Netlogon
+ipconfig /flushdns
+ipconfig /registerdns
+Restart-Service netlogon
+
+# === Configuration Failover DHCP en HotStandby
+$failoverName = "Failover-PSERV"
+$partnerServer = "PSERV-04"
+$sharedSecret = "FailoverSecret123!"
+
+# Récupération de toutes les étendues DHCP
+$scopes = Get-DhcpServerv4Scope
+
+# Création du failover en mode actif/passif (HotStandby)
+Add-DhcpServerv4Failover `
+    -Name $failoverName `
+    -PartnerServer $partnerServer `
+    -ScopeId $scopes.ScopeId `
+    -MaxClientLeadTime 1:00:00 `
+    -ReservePercent 5 `
+    -ServerRole "Active" `
+    -AutoStateTransition $true `
+    -SharedSecret $sharedSecret
+</code></pre>
+      <p class="explication fade-slide-up">
+        → Ce script configure entièrement un contrôleur de domaine avec DHCP redondant (failover).
+      </p>
+    </div>
+
+
+    <div id="script4" class="fade-slide-up" style="display:none">
+      <pre class="language-powershell"><code># =======================
+# Script interactif d'installation de Zabbix Agent 2 (7.2)
+# =======================
+
+# Demander les infos à l'utilisateur
+$ZabbixServer = Read-Host "➡️  Entrez l'adresse IP ou le nom DNS du serveur Zabbix"
+$Hostname     = Read-Host "➡️  Entrez le nom d'hôte souhaité pour ce serveur dans Zabbix"
+
+# Définir les variables internes
+$DownloadUrl  = "https://cdn.zabbix.com/zabbix/binaries/stable/7.2/7.2.0/zabbix_agent2-7.2.0-windows-amd64-openssl.msi"
+$Installer    = "C:\zabbix_agent2.msi"
+
+Write-Host "`n--- 📥 Téléchargement de l'agent Zabbix 7.2 ---`n"
+Invoke-WebRequest -Uri $DownloadUrl -OutFile $Installer
+
+Write-Host "`n--- ⚙️ Installation silencieuse de l'agent ---`n"
+Start-Process msiexec.exe -Wait -ArgumentList @(
+    "/i", "`"$Installer`"",
+    "/quiet",
+    "SERVER=$ZabbixServer",
+    "SERVERACTIVE=$ZabbixServer",
+    "HOSTNAME=$Hostname"
+)
+
+Write-Host "`n--- ▶️ Activation et démarrage du service Zabbix Agent 2 ---`n"
+Set-Service -Name "Zabbix Agent 2" -StartupType Automatic
+Start-Service -Name "Zabbix Agent 2"
+
+Write-Host "`n--- 🔓 Ouverture du port 10050 dans le pare-feu ---`n"
+New-NetFirewallRule -DisplayName "Zabbix Agent 2" `
+  -Direction Inbound -Protocol TCP -LocalPort 10050 -Action Allow
+
+Write-Host "`n✅ L'installation est terminée avec succès !`n"
+Write-Host "🖥️  Hôte : $Hostname"
+Write-Host "🌐 Serveur Zabbix : $ZabbixServer"
+
+}</code></pre>
+      <p class="explication fade-slide-up">
+        → Ce script installe automatiquement Zabbix Agent, pratique pour les serveur en mode core.
+      </p>
+    </div>
+
+    <div class="text-center">
+      <a href="index.html" class="btn btn-danger btn-lg animate__animated animate__pulse animate__infinite">⬅️ Retour à l’accueil</a>
+    </div>
+
+  </main>
+  <footer class="text-center py-3">
+    <p class="mb-0">&copy; 2025 ANSELIN Hugo – Projet PrintNet</p>
+  </footer>
+
+  <script>
+    const selector = document.getElementById("scriptSelector");
+    const blocks = ["script1", "script2", "script3", "script4"];
+    selector.addEventListener("change", () => {
+      blocks.forEach(id => document.getElementById(id).style.display = "none");
+      document.getElementById(selector.value).style.display = "block";
+    });
+  </script>
+</body>
+</html>
